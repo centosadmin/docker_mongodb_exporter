@@ -1,7 +1,6 @@
-package tailer
+package profiler
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -74,7 +73,6 @@ func (t *Tailer) Tail(wg sync.WaitGroup) {
 			stats.NumYields += profile.NumYield
 			stats.WriteConflicts += profile.WriteConflicts
 			t.SetStats(profile.Operation, stats)
-			fmt.Println(t.Database, profile.Operation, t.GetStats(profile.Operation))
 			time.Sleep(10 * time.Millisecond)
 		}
 		if iter.Err() != nil {

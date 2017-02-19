@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -12,7 +13,35 @@ const (
 	syncMongodbTimeout = 1 * time.Minute
 )
 
-func MongoSession(uri string) *mgo.Session {
+type Connection struct {
+	sync.Mutex
+	Uri     string
+	Session *mgo.Session
+}
+
+func NewConnection(uri string) *Connection {
+	return &Connection{
+		Uri:     uri,
+		Session: newMongoSession(uri),
+	}
+}
+
+func (c *Connection) Close() {
+	if c.Session != nil {
+		c.Session.Close()
+	}
+}
+
+func (c *Connection) GetSession() *mgo.Session {
+	if c.Session != nil {
+		c.Lock()
+		defer c.Unlock()
+		return c.Session.Copy()
+	}
+	return nil
+}
+
+func newMongoSession(uri string) *mgo.Session {
 	dialInfo, err := mgo.ParseURL(uri)
 	if err != nil {
 		glog.Errorf("Cannot connect to server using url %s: %s", uri, err)

@@ -3,43 +3,20 @@ package profiler
 import (
 	"sync"
 
-	"github.com/percona/mongodb_exporter/collector/profiler/tailer"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
 func getDBs(conn *mgo.Session) []string {
-	var databases []string
-	res := struct {
-		Databases []struct {
-			Name string `bson:"name"`
-		} `bson:"databases"`
-	}{}
-	err := conn.DB("admin").Run(bson.D{{"listDatabases", 1}}, &res)
-	if err == nil {
-		for _, db := range res.Databases {
-			databases = append(databases, db.Name)
-		}
-	}
-	return databases
+	var dbs []string
+	dbs, _ = conn.DatabaseNames()
+	return dbs
 }
 
 func getCollections(conn *mgo.Session, db string) []string {
-	var collections []string
-	res := struct {
-		Cursor struct {
-			FirstBatch []struct {
-				Name string `bson:"name"`
-			} `bson:"firstBatch"`
-		} `bson:"cursor"`
-	}{}
-	err := conn.DB(db).Run(bson.D{{"listCollections", 1}}, &res)
-	if err == nil {
-		for _, coll := range res.Cursor.FirstBatch {
-			collections = append(collections, coll.Name)
-		}
-	}
-	return collections
+	var colls []string
+	colls, _ = conn.DB(db).CollectionNames()
+	return colls
 }
 
 func getProfilingLevel(conn *mgo.Session, db string) (int, int) {
@@ -55,14 +32,12 @@ func getProfilingLevel(conn *mgo.Session, db string) (int, int) {
 }
 
 func hasSystemProfile(conn *mgo.Session, db string) bool {
-	var has bool
 	for _, coll := range getCollections(conn, db) {
 		if coll == "system.profile" {
-			has = true
-			break
+			return true
 		}
 	}
-	return has
+	return false
 }
 
 type Connection struct {
@@ -89,14 +64,14 @@ func (c *Connection) Close() {
 	c.Session.Close()
 }
 
-func main() {
+func StartProfilerListener() {
 	conn, err := NewConnection("mongodb://localhost:27017")
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
 
-	tailers := make(map[string]*tailer.Tailer)
+	tailers := make(map[string]*Tailer)
 	sess := conn.GetConn()
 	dbs := getDBs(sess)
 

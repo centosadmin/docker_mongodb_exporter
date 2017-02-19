@@ -1,10 +1,11 @@
 package collector
 
 import (
-	"github.com/percona/mongodb_exporter/shared"
+	"github.com/golang/glog"
 	"github.com/percona/mongodb_exporter/collector/mongod"
 	"github.com/percona/mongodb_exporter/collector/mongos"
-	"github.com/golang/glog"
+	//"github.com/percona/mongodb_exporter/collector/profiler"
+	"github.com/percona/mongodb_exporter/shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/mgo.v2"
 )
@@ -21,22 +22,41 @@ type MongodbCollectorOpts struct {
 
 // MongodbCollector is in charge of collecting mongodb's metrics.
 type MongodbCollector struct {
-	Opts MongodbCollectorOpts
+	Connection *shared.Connection
+	Opts       MongodbCollectorOpts
+	//profilerTailer *profiler.Tailer
 }
 
 // NewMongodbCollector returns a new instance of a MongodbCollector.
 func NewMongodbCollector(opts MongodbCollectorOpts) *MongodbCollector {
+	conn := shared.NewConnection(opts.URI)
 	exporter := &MongodbCollector{
-		Opts: opts,
+		Connection: conn,
+		Opts:       opts,
+		//profilerTailer: profiler.NewTailer(conn.GetSession()),
 	}
 
 	return exporter
 }
 
+// Return a new mgo session from shared.Connection
+func (exporter *MongodbCollector) GetSession() *mgo.Session {
+	if exporter.Connection != nil {
+		return exporter.Connection.GetSession()
+	}
+}
+
+// Cleanly-close the exporter
+func (exporter *MongodbCollector) Close() {
+	if exporter.Connection != nil {
+		exporter.Connection.Close()
+	}
+}
+
 // Describe describes all mongodb's metrics.
 func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
 	glog.Info("Describing groups")
-	session := shared.MongoSession(exporter.Opts.URI)
+	session := exporter.GetSession()
 	defer session.Close()
 	if session != nil {
 		serverStatus := collector_mongos.GetServerStatus(session)
@@ -48,7 +68,7 @@ func (exporter *MongodbCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect collects all mongodb's metrics.
 func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
-	mongoSess := shared.MongoSession(exporter.Opts.URI)
+	mongoSess := exporter.GetSession()
 	defer mongoSess.Close()
 	if mongoSess != nil {
 		serverVersion, err := shared.MongoSessionServerVersion(mongoSess)
@@ -63,14 +83,14 @@ func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
 
 		glog.Infof("Connected to: %s (node type: %s, server version: %s)", exporter.Opts.URI, nodeType, serverVersion)
 		switch {
-			case nodeType == "mongos":
-				exporter.collectMongos(mongoSess, ch)
-			case nodeType == "mongod":
-				exporter.collectMongod(mongoSess, ch)
-			case nodeType == "replset":
-				exporter.collectMongodReplSet(mongoSess, ch)
-			default:
-				glog.Infof("Unrecognized node type %s!", nodeType)
+		case nodeType == "mongos":
+			exporter.collectMongos(mongoSess, ch)
+		case nodeType == "mongod":
+			exporter.collectMongod(mongoSess, ch)
+		case nodeType == "replset":
+			exporter.collectMongodReplSet(mongoSess, ch)
+		default:
+			glog.Infof("Unrecognized node type %s!", nodeType)
 		}
 	}
 }
@@ -104,12 +124,11 @@ func (exporter *MongodbCollector) collectMongodReplSet(session *mgo.Session, ch 
 	replSetStatus := collector_mongod.GetReplSetStatus(session)
 	if replSetStatus != nil {
 		replSetStatus.Export(ch)
-	}       
+	}
 
 	glog.Info("Collecting Replset Oplog Status")
 	oplogStatus := collector_mongod.GetOplogStatus(session)
 	if oplogStatus != nil {
 		oplogStatus.Export(ch)
-	}       
+	}
 }
-

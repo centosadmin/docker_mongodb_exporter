@@ -1,4 +1,4 @@
-package tailer
+package profiler
 
 import (
 	"sync"
@@ -10,10 +10,10 @@ type Stats struct {
 	DocsExamined   float64
 	KeysExamined   float64
 	KeyUpdates     float64
-	Millis         float64
 	NReturned      float64
 	NumYields      float64
 	WriteConflicts float64
+	Millis         float64
 }
 
 func (s *Stats) Get() *Stats {
