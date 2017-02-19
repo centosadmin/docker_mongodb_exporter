@@ -58,7 +58,7 @@ func (t *Tailer) tailQuery() bson.M {
 	}
 }
 
-func (t *Tailer) Tail(done chan bool, wg sync.WaitGroup) {
+func (t *Tailer) Tail(wg sync.WaitGroup) {
 	defer wg.Done()
 	iter := t.SystemProfile().Find(t.tailQuery()).Tail(5 * time.Second)
 	for {
@@ -79,7 +79,6 @@ func (t *Tailer) Tail(done chan bool, wg sync.WaitGroup) {
 		}
 		if iter.Err() != nil {
 			iter.Close()
-			done <- true
 		}
 		if iter.Timeout() {
 			time.Sleep(50 * time.Millisecond)
@@ -89,5 +88,4 @@ func (t *Tailer) Tail(done chan bool, wg sync.WaitGroup) {
 		iter = t.SystemProfile().Find(t.tailQuery()).Tail(5 * time.Second)
 	}
 	iter.Close()
-	done <- true
 }

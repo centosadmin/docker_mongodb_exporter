@@ -98,7 +98,6 @@ func main() {
 	defer conn.Close()
 
 	tailers := make(map[string]*tailer.Tailer)
-	done := make(chan bool)
 	sess := conn.GetConn()
 	dbs := getDBs(sess)
 
@@ -110,9 +109,8 @@ func main() {
 		}
 		if hasSystemProfile(sess, db) {
 			tailers[db] = tailer.New(conn.GetConn(), db)
-			go tailers[db].Tail(done, wg)
+			go tailers[db].Tail(wg)
 		}
 	}
 	wg.Wait()
-	<-done
 }
