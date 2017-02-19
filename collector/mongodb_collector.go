@@ -44,6 +44,7 @@ func (exporter *MongodbCollector) GetSession() *mgo.Session {
 	if exporter.Connection != nil {
 		return exporter.Connection.GetSession()
 	}
+	return nil
 }
 
 // Cleanly-close the exporter
