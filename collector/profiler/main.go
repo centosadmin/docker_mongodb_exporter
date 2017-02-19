@@ -1,7 +1,6 @@
 package profiler
 
 import (
-	"strconv"
 	"sync"
 
 	"github.com/percona/mongodb_exporter/collector/profiler/tailer"
