@@ -107,12 +107,11 @@ func startWebServer() {
 
 	uri := os.Getenv("MONGODB_URI")
 	if uri != "" {
-		mongodbURIFlag = &uri
 	}
 
 	handler := prometheusHandler()
-
-	registerCollector()
+	collector := registerCollector()
+	defer collector.Close()
 
 	if *sslCertFile != "" && *sslKeyFile == "" || *sslCertFile == "" && *sslKeyFile != "" {
 		panic("One of the flags -web.ssl-cert or -web.ssl-key is missed to enable HTTPS/TLS")
@@ -166,11 +165,12 @@ func startWebServer() {
 	}
 }
 
-func registerCollector() {
+func registerCollector() *collector.MongodbCollector {
 	mongodbCollector := collector.NewMongodbCollector(collector.MongodbCollectorOpts{
 		URI: *mongodbURIFlag,
 	})
 	prometheus.MustRegister(mongodbCollector)
+	return mongodbCollector
 }
 
 func main() {
