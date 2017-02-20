@@ -64,12 +64,12 @@ func (exporter *MongodbCollector) Collect(ch chan<- prometheus.Metric) {
 	mongoSess := exporter.Connection.GetSession()
 	defer mongoSess.Close()
 	if mongoSess != nil {
-		serverVersion, err := shared.MongoSessionServerVersion(mongoSess)
+		serverVersion, err := exporter.Connection.ServerVersion()
 		if err != nil {
 			glog.Errorf("Problem gathering the mongo server version: %s", err)
 		}
 
-		nodeType, err := shared.MongoSessionNodeType(mongoSess)
+		nodeType, err := exporter.Connection.NodeType()
 		if err != nil {
 			glog.Errorf("Problem gathering the mongo node type: %s", err)
 		}

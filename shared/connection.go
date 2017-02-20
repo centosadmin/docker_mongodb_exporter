@@ -62,8 +62,8 @@ func newMongoSession(uri string) *mgo.Session {
 	return session
 }
 
-func MongoSessionServerVersion(session *mgo.Session) (string, error) {
-	buildInfo, err := session.BuildInfo()
+func (c *Connection) ServerVersion() (string, error) {
+	buildInfo, err := c.Session.BuildInfo()
 	if err != nil {
 		glog.Errorf("Could not get MongoDB BuildInfo: %s!", err)
 		return "unknown", err
@@ -71,13 +71,13 @@ func MongoSessionServerVersion(session *mgo.Session) (string, error) {
 	return buildInfo.Version, nil
 }
 
-func MongoSessionNodeType(session *mgo.Session) (string, error) {
+func (c *Connection) NodeType() (string, error) {
 	masterDoc := struct {
 		SetName interface{} `bson:"setName"`
 		Hosts   interface{} `bson:"hosts"`
 		Msg     string      `bson:"msg"`
 	}{}
-	err := session.Run("isMaster", &masterDoc)
+	err := c.Session.Run("isMaster", &masterDoc)
 	if err != nil {
 		glog.Errorf("Got unknown node type: %s", err)
 		return "unknown", err
