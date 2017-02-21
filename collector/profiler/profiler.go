@@ -3,6 +3,7 @@ package profiler
 import (
 	"sync"
 
+	"github.com/golang/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -30,8 +31,8 @@ func (p *Profiler) Start() {
 			continue
 		}
 		if hasSystemProfile(sess, db) {
-			tailers[db] = tailer.New(conn.GetConn(), db)
-			go tailers[db].Tail(p.wg)
+			p.tailers[db] = NewTailer(conn.GetConn(), db)
+			go p.tailers[db].Tail(p.wg)
 		}
 	}
 	p.wg.Wait()

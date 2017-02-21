@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -15,7 +16,7 @@ type Tailer struct {
 	stats    map[string]*Stats
 }
 
-func New(sess *mgo.Session, db string) *Tailer {
+func NewTailer(sess *mgo.Session, db string) *Tailer {
 	return &Tailer{
 		Database: db,
 		Session:  sess,
@@ -59,6 +60,7 @@ func (t *Tailer) tailQuery() bson.M {
 
 func (t *Tailer) Tail(wg sync.WaitGroup) {
 	defer wg.Done()
+	glog.Infof("Starting profiler tailing on database '%s'\n", t.Database)
 	iter := t.SystemProfile().Find(t.tailQuery()).Tail(5 * time.Second)
 	for {
 		profile := &Profile{}
@@ -76,13 +78,15 @@ func (t *Tailer) Tail(wg sync.WaitGroup) {
 			time.Sleep(10 * time.Millisecond)
 		}
 		if iter.Err() != nil {
-			iter.Close()
+			glog.Errorf("Profiler tailing error on database '%s': %s\n", t.Database, iter.Err().Error())
+			break
 		}
 		if iter.Timeout() {
 			time.Sleep(50 * time.Millisecond)
 			continue
 		}
 		time.Sleep(50 * time.Millisecond)
+		glog.V(2).Infof("Restarting profiling tailing on '%s' due to timeout\n", t.Database)
 		iter = t.SystemProfile().Find(t.tailQuery()).Tail(5 * time.Second)
 	}
 	iter.Close()
