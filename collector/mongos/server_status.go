@@ -44,11 +44,13 @@ type ServerStatus struct {
 
 	Network *NetworkStats `bson:"network"`
 
-	Opcounters     *OpcountersStats     `bson:"opcounters"`
-	Mem            *MemStats            `bson:"mem"`
-	Metrics        *MetricsStats        `bson:"metrics"`
+	Opcounters *OpcountersStats `bson:"opcounters"`
+	Mem        *MemStats        `bson:"mem"`
+	Metrics    *MetricsStats    `bson:"metrics"`
 
 	Cursors *Cursors `bson:"cursors"`
+
+	TCMalloc *TCMallocStats `bson:"tcmalloc"`
 }
 
 // Export exports the server status to be consumed by prometheus.
@@ -84,6 +86,9 @@ func (status *ServerStatus) Export(ch chan<- prometheus.Metric) {
 	if status.Cursors != nil {
 		status.Cursors.Export(ch)
 	}
+	if status.TCMalloc != nil {
+		status.TCMalloc.Export(ch)
+	}
 }
 
 // Describe describes the server status for prometheus.
@@ -115,6 +120,9 @@ func (status *ServerStatus) Describe(ch chan<- *prometheus.Desc) {
 	}
 	if status.Cursors != nil {
 		status.Cursors.Describe(ch)
+	}
+	if status.TCMalloc != nil {
+		status.TCMalloc.Describe(ch)
 	}
 }
 

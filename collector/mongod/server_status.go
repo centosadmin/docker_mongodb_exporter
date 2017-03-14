@@ -61,6 +61,8 @@ type ServerStatus struct {
 
 	Cursors *Cursors `bson:"cursors"`
 
+	TCMalloc *TCMallocStats `bson:"tcmalloc"`
+
 	StorageEngine *StorageEngineStats `bson:"storageEngine"`
 	InMemory      *WiredTigerStats    `bson:"inMemory"`
 	RocksDb       *RocksDbStats       `bson:"rocksdb"`
@@ -117,6 +119,9 @@ func (status *ServerStatus) Export(ch chan<- prometheus.Metric) {
 	}
 	if status.Cursors != nil {
 		status.Cursors.Export(ch)
+	}
+	if status.TCMalloc != nil {
+		status.TCMalloc.Export(ch)
 	}
 	if status.InMemory != nil {
 		status.InMemory.Export(ch)
@@ -187,6 +192,9 @@ func (status *ServerStatus) Describe(ch chan<- *prometheus.Desc) {
 	}
 	if status.Cursors != nil {
 		status.Cursors.Describe(ch)
+	}
+	if status.TCMalloc != nil {
+		status.TCMalloc.Describe(ch)
 	}
 	if status.StorageEngine != nil {
 		status.StorageEngine.Describe(ch)
